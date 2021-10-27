@@ -1,17 +1,19 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+
 plugins {
     kotlin("jvm") version "1.5.31"
+    id("com.github.johnrengelman.shadow") version "6.1.0"
 }
+
+group = "com.legitimoose"
+version = "1.0-SNAPSHOT"
 
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
-
-group = "com.legitimoose"
-version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -21,7 +23,7 @@ repositories {
 
 dependencies {
     implementation("com.github.Minestom:Minestom:-SNAPSHOT")
-    testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.5.31")
 }
 
 tasks.test {
@@ -30,4 +32,10 @@ tasks.test {
 
 tasks.withType<KotlinCompile>() {
     kotlinOptions.jvmTarget = "16"
+}
+
+tasks.jar {
+    manifest {
+        attributes["Main-Class"] = "com.legitimoose.MainDemo"
+    }
 }
