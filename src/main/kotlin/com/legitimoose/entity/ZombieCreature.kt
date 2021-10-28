@@ -22,7 +22,6 @@ class ZombieCreature : EntityCreature(EntityType.ZOMBIE)
 //            .addGoalSelector(MeleeAttackGoal(this, 1.0, Duration.ofSeconds(1)))
             .addTargetSelector(PlayerSelector(this))
             .build())
-
     }
 }
 

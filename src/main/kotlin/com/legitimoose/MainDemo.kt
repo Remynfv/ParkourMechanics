@@ -82,28 +82,14 @@ object MainDemo
             {
                 if (event.target is LivingEntity)
                 {
-                    (event.target as LivingEntity).damage(EntityDamage(event.player), 1f)
-                    event.player.sendMessage("yo")
+                    (event.target as LivingEntity).damage(EntityDamage(event.player), 0f)
+                    CombatUtils.applyKnockback(event.target, event.entity, true)
                 }
             }
         }
 
         globalEventHandler.addListener(EntityAttackEvent::class.java) { event: EntityAttackEvent ->
-            if (event.target is LivingEntity)
-            {
-                val attacker = event.entity
-                val target = event.target as LivingEntity
-
-                //Damage
-                target.damage(EntityDamage(event.entity), 0f)
-
-                //Knockback
-                val strength: Float = (0.4f * (if (attacker.isSprinting) 1.5f else 1f)).toFloat()
-
-                target.takeKnockback(strength, sin(attacker.position.yaw * (Math.PI/180)), -cos(attacker.position.yaw * (Math.PI/180)))
-                if (attacker is Player)
-                    attacker.sendMessage("Stregnth: $strength")
-            }
+            CombatUtils.applyKnockback(event.target, event.entity)
         }
 
         ZombieCreature().setInstance(instanceContainer, Pos(0.0, 42.0, 0.0))
