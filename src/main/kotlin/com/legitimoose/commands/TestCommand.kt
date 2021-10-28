@@ -6,6 +6,7 @@ import net.minestom.server.command.builder.Command
 import net.minestom.server.command.builder.CommandContext
 import net.minestom.server.command.builder.CommandExecutor
 import net.minestom.server.command.builder.arguments.ArgumentType
+import net.minestom.server.entity.Player
 
 class TestCommand() : Command("test")
 {
@@ -13,8 +14,8 @@ class TestCommand() : Command("test")
     {
         // Executed if no other executor can be used
         defaultExecutor = CommandExecutor { sender: CommandSender, context: CommandContext? ->
-            sender.sendMessage("You executed the command")
-            MainDemo.instanceContainer.saveChunksToStorage()
+            (sender as Player).tick(0)
+            sender.sendMessage("${sender.velocity}")
         }
 
         // All default arguments are available in the ArgumentType class

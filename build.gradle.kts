@@ -24,6 +24,7 @@ repositories {
 dependencies {
     implementation("com.github.Minestom:Minestom:-SNAPSHOT")
     testImplementation("org.jetbrains.kotlin:kotlin-test:1.5.31")
+    implementation("net.kyori:adventure-text-minimessage:4.1.0-SNAPSHOT")
 }
 
 tasks.test {
