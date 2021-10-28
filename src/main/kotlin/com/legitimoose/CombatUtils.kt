@@ -5,14 +5,20 @@ import net.minestom.server.entity.LivingEntity
 import net.minestom.server.entity.Player
 import net.minestom.server.entity.damage.EntityDamage
 import net.minestom.server.network.packet.server.play.EntityAnimationPacket
+import net.minestom.server.tag.Tag
+import net.minestom.server.utils.time.TimeUnit
 import org.jglrxavpok.hephaistos.mca.pack
 import kotlin.math.cos
 import kotlin.math.sin
 
 object CombatUtils
 {
+    //Invulnerable ticks after a hit
+    var hurtTime: Long = 6
     fun applyKnockback(target: Entity, attacker: Entity, inward: Boolean = false)
     {
+        if (target.getTag(Tag.Byte("hurt")) == 1.toByte())
+            return
         if (target is LivingEntity)
         {
             //Damage
@@ -33,8 +39,11 @@ object CombatUtils
 
             }
 
-            if (attacker is Player)
-                attacker.sendMessage("Stregnth: $strength")
+            target.setTag(Tag.Byte("hurt"), 1)
+            schedulerManager.buildTask {
+                target.setTag(Tag.Byte("hurt"), 0)
+            }.delay(hurtTime, TimeUnit.SERVER_TICK).schedule()
+
         }
     }
 }

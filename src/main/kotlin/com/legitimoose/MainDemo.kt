@@ -31,16 +31,18 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 
+// Initialization
+val minecraftServer: MinecraftServer = MinecraftServer.init()
+val instanceManager: InstanceManager = MinecraftServer.getInstanceManager()
+val schedulerManager = MinecraftServer.getSchedulerManager()
+
+// Create the instance
+val anvilLoader = AnvilLoader("worlds/worlde")
+val instanceContainer = instanceManager.createInstanceContainer(anvilLoader)
+
 object MainDemo
 {
-    // Initialization
-    val minecraftServer: MinecraftServer = MinecraftServer.init()
-    val instanceManager: InstanceManager = MinecraftServer.getInstanceManager()
 
-    // Create the instance
-    val anvilLoader = AnvilLoader("worlds/worlde")
-    val instanceContainer = instanceManager.createInstanceContainer(anvilLoader)
-    
     @JvmStatic
     fun main(args: Array<String>)
     {

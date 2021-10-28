@@ -1,6 +1,7 @@
 package com.legitimoose.commands
 
 import com.legitimoose.MainDemo
+import com.legitimoose.instanceContainer
 import com.sun.tools.javac.Main
 import net.minestom.server.entity.Entity
 import net.minestom.server.entity.EntityCreature
@@ -29,9 +30,9 @@ class PlayerSelector(entityCreature: EntityCreature) : TargetSelector(entityCrea
 {
     override fun findTarget(): Entity?
     {
-        if (MainDemo.instanceContainer.players.isEmpty())
+        if (instanceContainer.players.isEmpty())
             return null
-        return MainDemo.instanceContainer.players.first()
+        return instanceContainer.players.first()
     }
 
 }
