@@ -1,23 +1,13 @@
 package com.legitimoose
 
-import com.legitimoose.commands.GamemodeCommand
-import com.legitimoose.commands.SummonCommand
-import com.legitimoose.commands.TestCommand
-import com.legitimoose.commands.ZombieCreature
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
+import com.legitimoose.commands.*
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.minestom.server.MinecraftServer
 import net.minestom.server.coordinate.Pos
-import net.minestom.server.coordinate.Vec
 import net.minestom.server.entity.*
-import net.minestom.server.entity.damage.DamageType
-import net.minestom.server.entity.damage.EntityDamage
-import net.minestom.server.entity.metadata.other.BoatMeta
 import net.minestom.server.event.entity.EntityAttackEvent
 import net.minestom.server.event.player.PlayerEntityInteractEvent
 import net.minestom.server.event.player.PlayerLoginEvent
-import net.minestom.server.event.player.PlayerMoveEvent
 import net.minestom.server.event.server.ServerListPingEvent
 import net.minestom.server.instance.*
 import net.minestom.server.instance.batch.ChunkBatch
@@ -25,8 +15,6 @@ import net.minestom.server.instance.block.Block
 import net.minestom.server.ping.ServerListPingType
 import net.minestom.server.world.biomes.Biome
 import java.util.*
-import kotlin.math.cos
-import kotlin.math.sin
 
 
 // Initialization
@@ -62,6 +50,7 @@ object MainDemo
         MinecraftServer.getCommandManager().register(TestCommand())
         MinecraftServer.getCommandManager().register(GamemodeCommand())
         MinecraftServer.getCommandManager().register(SummonCommand())
+        MinecraftServer.getCommandManager().register(PvpCommand())
 
         globalEventHandler.addListener(ServerListPingEvent::class.java) { event: ServerListPingEvent ->
 
@@ -80,11 +69,11 @@ object MainDemo
 
         globalEventHandler.addListener(PlayerEntityInteractEvent::class.java) { event: PlayerEntityInteractEvent ->
             if (event.hand == Player.Hand.OFF)
-                CombatUtils.applyKnockback(event.target, event.entity, true)
+                CombatUtils.hit(event.target, event.entity, true)
         }
 
         globalEventHandler.addListener(EntityAttackEvent::class.java) { event: EntityAttackEvent ->
-            CombatUtils.applyKnockback(event.target, event.entity)
+            CombatUtils.hit(event.target, event.entity)
         }
 
         ZombieCreature().setInstance(instanceContainer, Pos(0.0, 42.0, 0.0))
