@@ -4,10 +4,14 @@ import com.legitimoose.commands.*
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.minestom.server.MinecraftServer
 import net.minestom.server.coordinate.Pos
+import net.minestom.server.coordinate.Vec
 import net.minestom.server.entity.*
 import net.minestom.server.event.entity.EntityAttackEvent
+import net.minestom.server.event.entity.EntityVelocityEvent
 import net.minestom.server.event.player.PlayerEntityInteractEvent
 import net.minestom.server.event.player.PlayerLoginEvent
+import net.minestom.server.event.player.PlayerMoveEvent
+import net.minestom.server.event.player.PlayerTickEvent
 import net.minestom.server.event.server.ServerListPingEvent
 import net.minestom.server.instance.*
 import net.minestom.server.instance.batch.ChunkBatch
@@ -76,6 +80,21 @@ object MainDemo
             CombatUtils.hit(event.target, event.entity)
         }
 
+        globalEventHandler.addListener(PlayerMoveEvent::class.java) { event ->
+            if (!event.newPosition.samePoint(event.player.position) &&!playersMovedLastTick.contains(event.player.uuid))
+            {
+                playersMovedLastTick.add(event.player.uuid)
+                event.player.sendMessage("you moved!")
+            }
+
+        }
+
+        globalEventHandler.addListener(PlayerTickEvent::class.java) { event ->
+            if (!playersMovedLastTick.contains(event.player.uuid))
+                event.player.sendMessage("you chillin")
+            playersMovedLastTick = mutableListOf()
+        }
+
         ZombieCreature().setInstance(instanceContainer, Pos(0.0, 42.0, 0.0))
         EntityCreature(EntityType.BOAT).setInstance(instanceContainer, Pos(5.0, 42.0, 0.0))
 
@@ -83,6 +102,8 @@ object MainDemo
         // Start the server on port 25565
         minecraftServer.start("0.0.0.0", 25565)
     }
+
+    var playersMovedLastTick = mutableListOf<UUID>()
 
     private class GeneratorDemo : ChunkGenerator
     {
