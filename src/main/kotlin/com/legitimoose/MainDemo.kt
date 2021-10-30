@@ -1,16 +1,18 @@
 package com.legitimoose
 
+import com.legitimoose.blocks.DemoHandler
 import com.legitimoose.commands.*
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.minestom.server.MinecraftServer
+import net.minestom.server.collision.CollisionUtils
 import net.minestom.server.coordinate.Pos
-import net.minestom.server.coordinate.Vec
-import net.minestom.server.entity.*
+import net.minestom.server.entity.EntityCreature
+import net.minestom.server.entity.EntityType
+import net.minestom.server.entity.Player
 import net.minestom.server.event.entity.EntityAttackEvent
-import net.minestom.server.event.entity.EntityVelocityEvent
+import net.minestom.server.event.player.PlayerBlockPlaceEvent
 import net.minestom.server.event.player.PlayerEntityInteractEvent
 import net.minestom.server.event.player.PlayerLoginEvent
-import net.minestom.server.event.player.PlayerMoveEvent
 import net.minestom.server.event.player.PlayerTickEvent
 import net.minestom.server.event.server.ServerListPingEvent
 import net.minestom.server.instance.*
@@ -41,6 +43,15 @@ object MainDemo
 
         // Set the ChunkGenerator
         instanceContainer.chunkGenerator = GeneratorDemo()
+
+        var tnt = Block.TNT
+        // Create a new block with the specified handler.
+        // Be aware that block objects can be reused, handlers should
+        // therefore never assume to be assigned to a single block.
+        // Create a new block with the specified handler.
+        // Be aware that block objects can be reused, handlers should
+        // therefore never assume to be assigned to a single block.
+        tnt = tnt.withHandler(DemoHandler())
 
         // Add an event callback to specify the spawning instance (and the spawn position)
         val globalEventHandler = MinecraftServer.getGlobalEventHandler()
@@ -76,27 +87,21 @@ object MainDemo
                 CombatUtils.hit(event.target, event.entity, true)
         }
 
+        globalEventHandler.addListener(PlayerBlockPlaceEvent::class.java) { event: PlayerBlockPlaceEvent ->
+            if (event.block == Block.TNT)
+                event.block = tnt
+        }
+
         globalEventHandler.addListener(EntityAttackEvent::class.java) { event: EntityAttackEvent ->
             CombatUtils.hit(event.target, event.entity)
         }
 
-        globalEventHandler.addListener(PlayerMoveEvent::class.java) { event ->
-            if (!event.newPosition.samePoint(event.player.position) &&!playersMovedLastTick.contains(event.player.uuid))
-            {
-                playersMovedLastTick.add(event.player.uuid)
-                event.player.sendMessage("you moved!")
-            }
 
-        }
-
-        globalEventHandler.addListener(PlayerTickEvent::class.java) { event ->
-            if (!playersMovedLastTick.contains(event.player.uuid))
-                event.player.sendMessage("you chillin")
-            playersMovedLastTick = mutableListOf()
-        }
+        MinecraftServer.getConnectionManager().setPlayerProvider(ParkourPlayerProvider())
 
         ZombieCreature().setInstance(instanceContainer, Pos(0.0, 42.0, 0.0))
         EntityCreature(EntityType.BOAT).setInstance(instanceContainer, Pos(5.0, 42.0, 0.0))
+
 
 
         // Start the server on port 25565
