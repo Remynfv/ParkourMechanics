@@ -63,7 +63,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         if (isOnGround)
         {
             canWallrun = true
-            hasBonked = false
+            bonkDirections = mutableSetOf()
 
             if (stopWallrunTimer != null)
             {
@@ -77,25 +77,42 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     }
 
     //Runs when you first hit a wall.
-    var hasBonked = false
+    var bonkDirections = mutableSetOf<Direction>()
     private fun smack(direction: Direction)
     {
         //Smack!
         if (!isOnGround)
         {
             //Don't make the funny noise if you are wallrunning
-            if (startWallrun(direction)) return
+            if (startWallrun(direction))
+                return
+            else
+            {
+                bonk(direction)
+            }
         }
-        if (!canWallrun)
+        if (!bonkDirections.contains(direction))
+        {
+            if (!canWallrun)
+                bonk(direction)
+
+            //Smacky noise
+            playSound(Sound.sound(Key.key("block.stone.fall"), Sound.Source.PLAYER, 3f, 1f), Sound.Emitter.self())
+        }
+
+
+    }
+
+    private fun bonk(direction: Direction)
+    {
+        if (!bonkDirections.contains(direction))
         {
             //BONK
+            sendMessage("bönk")
             wallJump(direction, 0.2, 0.0)
-            hasBonked = true
+            bonkDirections.add(direction)
+            playSound(Sound.sound(Key.key("item.crossbow.hit"), Sound.Source.PLAYER, 0.5f, 2f), Sound.Emitter.self())
         }
-
-        //Smacky noise
-        playSound(Sound.sound(Key.key("block.stone.fall"), Sound.Source.PLAYER, 3f, 1f), Sound.Emitter.self())
-
     }
 
     private fun startWallrun(direction: Direction): Boolean
