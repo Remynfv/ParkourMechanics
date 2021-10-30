@@ -2,11 +2,9 @@ package com.legitimoose
 
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.sound.Sound
-import net.minestom.server.MinecraftServer
 import net.minestom.server.coordinate.Vec
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
-import net.minestom.server.entity.damage.DamageType
 import net.minestom.server.network.player.PlayerConnection
 import net.minestom.server.potion.Potion
 import net.minestom.server.potion.PotionEffect
@@ -14,7 +12,6 @@ import net.minestom.server.timer.Task
 import net.minestom.server.utils.Direction
 import java.time.Duration
 import java.util.*
-import kotlin.math.abs
 import kotlin.math.absoluteValue
 import kotlin.math.min
 
@@ -63,7 +60,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         if (isOnGround)
         {
             canWallrun = true
-            bonkDirections = mutableSetOf()
+            lastBonkDirection = null
 
             if (stopWallrunTimer != null)
             {
@@ -77,7 +74,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     }
 
     //Runs when you first hit a wall.
-    var bonkDirections = mutableSetOf<Direction>()
+    var lastBonkDirection: Direction? = null
     private fun smack(direction: Direction)
     {
         //Smack!
@@ -91,7 +88,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 bonk(direction)
             }
         }
-        if (!bonkDirections.contains(direction))
+        if (lastBonkDirection != direction)
         {
             if (!canWallrun)
                 bonk(direction)
@@ -105,12 +102,12 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
     private fun bonk(direction: Direction)
     {
-        if (!bonkDirections.contains(direction))
+        if (lastBonkDirection != direction)
         {
             //BONK
             sendMessage("bönk")
             wallJump(direction, 0.2, 0.0)
-            bonkDirections.add(direction)
+            lastBonkDirection = direction
             playSound(Sound.sound(Key.key("item.crossbow.hit"), Sound.Source.PLAYER, 0.5f, 2f), Sound.Emitter.self())
         }
     }
