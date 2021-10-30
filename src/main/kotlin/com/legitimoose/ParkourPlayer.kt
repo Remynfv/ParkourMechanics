@@ -60,7 +60,6 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
             {
                 stopWallrunTimer?.cancel()
                 stopWallrunTimer = null
-                sendMessage("timer stopped")
             }
         }
     }
@@ -110,7 +109,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
             .mul(wallrunSpeedMultiplier)
             .withY(
                 min(velocity.y, 4.0))
-            .let { wallrunVelocity = it; setVelocity(it); sendMessage(it.toString())}
+            .let { wallrunVelocity = it; setVelocity(it)}
     }
 
     private fun stopWallrun()
@@ -139,7 +138,6 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         }
 
         wallrunVelocity = wallrunVelocity?.withY { y -> y - 0.5 }
-        sendMessage("newvelocity ${wallrunVelocity?.y}")
 
         //Keep goin' forward.
         wallrunVelocity?.let { setVelocity(it) }
@@ -166,8 +164,6 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 }
             }
         }
-//        val msg = MiniMessage.get().parse("<rainbow>${output}")
-//        sendMessage(msg)
 
         touchingWalls = output
     }
