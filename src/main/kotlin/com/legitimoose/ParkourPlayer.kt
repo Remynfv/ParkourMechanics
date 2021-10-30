@@ -10,10 +10,9 @@ import net.minestom.server.potion.Potion
 import net.minestom.server.potion.PotionEffect
 import net.minestom.server.timer.Task
 import net.minestom.server.utils.Direction
-import java.time.Duration
+import net.minestom.server.utils.time.TimeUnit
 import java.util.*
 import kotlin.math.absoluteValue
-import kotlin.math.max
 import kotlin.math.min
 
 class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnection) : Player(uuid, username, playerConnection)
@@ -24,6 +23,8 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         var jumpForce = 7.0
         var wallrunSpeedMultiplier = 7.0
         var walljumpMomentumMultiplier = 0.2
+        var maxClimbs = 2
+        var wallrunTime = 40L
     }
     var touchingWalls: Set<Direction> = setOf()
     override fun tick(time: Long)
@@ -34,6 +35,14 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
         if (wallrunning)
             wallrunTick()
+
+        if (wallClimbDirection != null)
+            if (!touchingWalls.contains(wallClimbDirection))
+            {
+                removeEffect(PotionEffect.SLOW_FALLING)
+                wallClimbDirection = null
+            }
+
     }
 
     //Ticks when you move, or if something important is happening
@@ -62,6 +71,8 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         {
             canWallrun = true
             lastBonkDirection = null
+            wallClimbDirection = null
+            climbs = 0
 
             if (stopWallrunTimer != null)
             {
@@ -76,6 +87,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
     //Runs when you first hit a wall.
     var lastBonkDirection: Direction? = null
+    var climbs = 0
     private fun smack(direction: Direction)
     {
         //Smack!
@@ -84,22 +96,11 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
             //Don't make the funny noise if you are wallrunning
             if (startWallrun(direction) == 0)
                 return
-            else if (stopWallrunTimer != null)
+            else if (climbs >= maxClimbs)
                 bonk(direction)
-            else if (velocity.y > 0)
+            else if (velocity.y > 0 && climbs < maxClimbs)
             {
-                //Wall climb
-                var runForce = velocity.withY(0.0).lengthSquared()
-
-                //Max runforce
-                runForce = min(runForce / 2, 12.0)
-
-                //Min runforce can't be less than your current velocity. Wall climbing will always give you a booste.
-                runForce = max(runForce, velocity.y)
-
-                sendMessage("force: $runForce")
-
-                setVelocity(Vec(0.0, runForce, 0.0))
+                startWallClimb(direction)
             }
         }
         if (lastBonkDirection != direction)
@@ -114,6 +115,44 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
     }
 
+    var wallClimbDirection: Direction? = null
+    private fun startWallClimb(direction: Direction): Int
+    {
+        val yaw = position.yaw
+        if (!when (direction)
+            {
+                Direction.NORTH -> (yaw.absoluteValue in 135f..180f  || position.yaw in -180f..-135f)
+                Direction.SOUTH -> (position.yaw in -45f..45f)
+                Direction.WEST -> (position.yaw in 45f..135f)
+                Direction.EAST -> (position.yaw in -135f..-45f)
+                else -> false
+            }
+        ) {
+            bonk(direction) //Bonk if you hit a climb the wrong way
+            return 2
+        }
+
+
+        //Wall climb
+        val runForce = velocity.withY(0.0).lengthSquared()
+
+        wallClimbDirection = direction
+
+        if (runForce < 6)
+        {
+            setVelocity(Vec(0.0, 7.0, 0.0))
+            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 10, false, true))
+        }
+        else
+        {
+            setVelocity(Vec(0.0, 12.0, 0.0))
+            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 15, false, true))
+        }
+
+        climbs++
+        return 0
+    }
+
     private fun bonk(direction: Direction)
     {
         if (lastBonkDirection != direction)
@@ -122,6 +161,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
             wallJump(direction, 0.2, 0.0)
             lastBonkDirection = direction
             playSound(Sound.sound(Key.key("item.crossbow.hit"), Sound.Source.PLAYER, 0.5f, 2f), Sound.Emitter.self())
+
+            //Clear slow falling from climb
+            removeEffect(PotionEffect.SLOW_FALLING)
         }
     }
 
@@ -129,6 +171,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     //0: WALLRUN SUCCEEDED
     //1: CAN'T START WALLRUN
     //2: FACING WRONG WAY
+    //3: OUT OF CLIMBS
     private fun startWallrun(direction: Direction): Int
     {
         if (wallrunning || !canWallrun)
@@ -144,6 +187,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 else -> false
             }
         ) return 2
+
+        if (climbs >= maxClimbs)
+            return 3
 
         if (stopWallrunTimer == null)
         {
@@ -170,11 +216,12 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 stopWallrun()
                 canWallrun = false
                 stopWallrunTimer = null
-            }.delay(Duration.ofSeconds(1)).schedule()
+            }.delay(wallrunTime, TimeUnit.CLIENT_TICK).schedule()
         }
         wallrunning = true
         wallrunDirection = direction
         soundTick = true
+        climbs++
         getVecFromYaw(position.yaw)
             .mul(wallrunSpeedMultiplier)
             .withY(
@@ -261,11 +308,14 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
         isFlying = false
 
-        //Normal jumps stop wallrunning, wallrun jumps do not.
-        if (!wallrunning)
-            canWallrun = false
+//        //Normal jumps stop wallrunning, wallrun jumps do not.
+//        if (!wallrunning)
+//            canWallrun = false
 
         stopWallrun()
+
+        //Remove slow falling from wall climbs when you jump off the wall.
+        removeEffect(PotionEffect.SLOW_FALLING)
 
         val wall = touchingWalls.firstOrNull()
         if (wall != null)
