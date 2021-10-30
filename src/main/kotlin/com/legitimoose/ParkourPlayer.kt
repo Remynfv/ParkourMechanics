@@ -86,8 +86,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     }
 
     //Runs when you first hit a wall.
-    var lastBonkDirection: Direction? = null
-    var climbs = 0
+    private var lastBonkDirection: Direction? = null
+    private var climbs = 0
+
     private fun smack(direction: Direction)
     {
         //Smack!
@@ -115,7 +116,13 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
     }
 
-    var wallClimbDirection: Direction? = null
+    private var wallClimbDirection: Direction? = null
+        set(value)
+        {
+            field = value
+            isAllowFlying = value != null
+        }
+
     private fun startWallClimb(direction: Direction): Int
     {
         val yaw = position.yaw
@@ -138,15 +145,16 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
         wallClimbDirection = direction
 
-        if (runForce < 6)
+        //Only do the small jump if youre moving REAL slow. This is buggy af.
+        if (runForce < 4)
         {
             setVelocity(Vec(0.0, 7.0, 0.0))
-            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 10, false, true))
+            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 20, false, true))
         }
         else
         {
             setVelocity(Vec(0.0, 12.0, 0.0))
-            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 15, false, true))
+            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 30, false, true))
         }
 
         climbs++
@@ -164,6 +172,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
             //Clear slow falling from climb
             removeEffect(PotionEffect.SLOW_FALLING)
+
+            //No more climbing if you bonk >:)
+            climbs = maxClimbs
         }
     }
 
@@ -246,6 +257,11 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 isAllowFlying = value
         }
     var wallrunning = false
+        set(value)
+        {
+            field = value
+            isAllowFlying = value
+        }
     var wallrunVelocity: Vec? = null
     var wallrunDirection: Direction? = null
     var soundTick = true
@@ -312,17 +328,29 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 //        if (!wallrunning)
 //            canWallrun = false
 
+        //Walljump if touching a wall and climbing or wallrunning.
+        val wall = touchingWalls.firstOrNull()
+        if (wall != null && (wallClimbDirection != null || wallrunning))
+        {
+            setVelocity(
+                getWallJump(wall, 1.0)
+                    .add(getVecFromYaw(position.yaw)
+                        .mul(20.0)
+                    )
+            )
+
+            wallJump(wall, 1.0)
+            playSound(Sound.sound(Key.key("block.stone.break"), Sound.Source.PLAYER, 2f, 1.2f), Sound.Emitter.self())
+        }
+
         stopWallrun()
 
         //Remove slow falling from wall climbs when you jump off the wall.
         removeEffect(PotionEffect.SLOW_FALLING)
 
-        val wall = touchingWalls.firstOrNull()
-        if (wall != null)
-        {
-            wallJump(wall, 1.0)
-            playSound(Sound.sound(Key.key("block.stone.break"), Sound.Source.PLAYER, 2f, 1.2f), Sound.Emitter.self())
-        }
+
+        if (climbs >= maxClimbs)
+            isAllowFlying = false
     }
 
     var walljumping = false
@@ -342,5 +370,10 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                     .withY(0.0)
                     .mul(momentumConservation)
             )
+    }
+
+    fun onSneak()
+    {
+        //TODO Sliiiiide
     }
 }

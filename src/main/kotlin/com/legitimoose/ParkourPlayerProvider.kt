@@ -6,6 +6,7 @@ import net.minestom.server.event.entity.EntityAttackEvent
 import net.minestom.server.event.player.PlayerLoginEvent
 import net.minestom.server.event.player.PlayerMoveEvent
 import net.minestom.server.event.player.PlayerStartFlyingEvent
+import net.minestom.server.event.player.PlayerStartSneakingEvent
 import net.minestom.server.network.PlayerProvider
 import net.minestom.server.network.player.PlayerConnection
 import java.util.*
@@ -37,6 +38,10 @@ class ParkourPlayerProvider: PlayerProvider
         // Add an event callback to specify the spawning instance (and the spawn position)
         globalEventHandler.addListener(PlayerStartFlyingEvent::class.java) { event: PlayerStartFlyingEvent ->
             (event.player as ParkourPlayer).onStartFlying()
+        }
+
+        globalEventHandler.addListener(PlayerStartSneakingEvent::class.java) { event: PlayerStartSneakingEvent ->
+            (event.player as com.legitimoose.ParkourPlayer).onSneak()
         }
     }
     override fun createPlayer(uuid: UUID, username: String, connection: PlayerConnection): ParkourPlayer
