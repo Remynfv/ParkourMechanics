@@ -83,7 +83,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
             //Don't make the funny noise if you are wallrunning
             if (startWallrun(direction))
                 return
-            else
+            else if (stopWallrunTimer != null)
             {
                 bonk(direction)
             }
