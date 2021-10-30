@@ -20,6 +20,11 @@ class ParkourPlayerProvider: PlayerProvider
             (event.player as ParkourPlayer).onMove()
         }
 
+        globalEventHandler.addListener(PlayerMoveEvent::class.java) { event: PlayerMoveEvent ->
+            if (!event.newPosition.samePoint(event.player.position))
+                (event.player as ParkourPlayer).onMove()
+        }
+
         // Add an event callback to specify the spawning instance (and the spawn position)
         globalEventHandler.addListener(PlayerLoginEvent::class.java) { event: PlayerLoginEvent ->
             val player = event.player
