@@ -13,6 +13,7 @@ import net.minestom.server.utils.Direction
 import java.time.Duration
 import java.util.*
 import kotlin.math.absoluteValue
+import kotlin.math.max
 import kotlin.math.min
 
 class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnection) : Player(uuid, username, playerConnection)
@@ -81,11 +82,24 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         if (!isOnGround)
         {
             //Don't make the funny noise if you are wallrunning
-            if (startWallrun(direction))
+            if (startWallrun(direction) == 0)
                 return
             else if (stopWallrunTimer != null)
-            {
                 bonk(direction)
+            else if (velocity.y > 0)
+            {
+                //Wall climb
+                var runForce = velocity.withY(0.0).lengthSquared()
+
+                //Max runforce
+                runForce = min(runForce / 2, 12.0)
+
+                //Min runforce can't be less than your current velocity. Wall climbing will always give you a booste.
+                runForce = max(runForce, velocity.y)
+
+                sendMessage("force: $runForce")
+
+                setVelocity(Vec(0.0, runForce, 0.0))
             }
         }
         if (lastBonkDirection != direction)
@@ -111,10 +125,14 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         }
     }
 
-    private fun startWallrun(direction: Direction): Boolean
+    //Returns int:
+    //0: WALLRUN SUCCEEDED
+    //1: CAN'T START WALLRUN
+    //2: FACING WRONG WAY
+    private fun startWallrun(direction: Direction): Int
     {
         if (wallrunning || !canWallrun)
-            return false
+            return 1
 
         val yaw = position.yaw
         if (!when (direction)
@@ -125,7 +143,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 Direction.EAST -> (position.yaw in -180f..-135f || position.yaw in -45f..0f)
                 else -> false
             }
-        ) return false
+        ) return 2
 
         if (stopWallrunTimer == null)
         {
@@ -163,7 +181,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 min(velocity.y, 4.0))
             .let { wallrunVelocity = it; setVelocity(it)}
 
-        return true
+        return 0
     }
 
     private fun stopWallrun()
