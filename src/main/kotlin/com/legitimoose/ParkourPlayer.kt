@@ -52,11 +52,16 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         else
             removeEffect(PotionEffect.LEVITATION)
 
-        if (isOnGround && stopWallrunTimer != null)
+        if (isOnGround)
         {
-            stopWallrunTimer?.cancel()
-            stopWallrunTimer = null
-            sendMessage("timer stopped")
+            canWallrun = true
+
+            if (stopWallrunTimer != null)
+            {
+                stopWallrunTimer?.cancel()
+                stopWallrunTimer = null
+                sendMessage("timer stopped")
+            }
         }
     }
 
@@ -72,7 +77,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
     private fun startWallrun(direction: Direction)
     {
-        if (wallrunning)
+        if (wallrunning || !canWallrun)
             return
 
         if (stopWallrunTimer == null)
@@ -81,15 +86,19 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
                 //Little hop off the wall
                 wallrunDirection?.opposite()?.let {
-                    Vec(it.normalX().toDouble() * jumpForce, jumpUpForce, it.normalZ() * jumpForce)
+
+                    setVelocity(
+                        Vec(it.normalX().toDouble() * jumpForce * 0.2, 1.0, it.normalZ() * jumpForce * 0.2)
                         .add(velocity.withY(0.0))
+                    )
 
                 }
 
                 //Stop the wallrun
                 stopWallrun()
-                sendMessage("Your wallrunning days are over!")
+                canWallrun = false
                 stopWallrunTimer = null
+                sendMessage("Your wallrunning days are over!")
             }.delay(Duration.ofSeconds(1)).schedule()
         }
         wallrunning = true
@@ -108,6 +117,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         wallrunDirection = null
     }
 
+    var canWallrun = true
     var wallrunning = false
     var wallrunVelocity: Vec? = null
     var wallrunDirection: Direction? = null
