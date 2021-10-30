@@ -1,7 +1,11 @@
 package com.legitimoose
 
+import net.kyori.adventure.key.Key
+import net.kyori.adventure.sound.Sound
+import net.minestom.server.MinecraftServer
 import net.minestom.server.coordinate.Vec
 import net.minestom.server.entity.Player
+import net.minestom.server.entity.damage.DamageType
 import net.minestom.server.network.player.PlayerConnection
 import net.minestom.server.potion.Potion
 import net.minestom.server.potion.PotionEffect
@@ -9,6 +13,8 @@ import net.minestom.server.timer.Task
 import net.minestom.server.utils.Direction
 import java.time.Duration
 import java.util.*
+import kotlin.math.abs
+import kotlin.math.absoluteValue
 import kotlin.math.min
 
 class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnection) : Player(uuid, username, playerConnection)
@@ -40,6 +46,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         //Add slowfalling
         if (touchingWalls.isNotEmpty() && wallrunning)
         {
+//            if (!wallrunning && !walljumping && !isOnGround)
+//                playSound(Sound.sound(Key.key("block.sand.break"), Sound.Source.PLAYER, 1f, 1.7f), Sound.Emitter.self())
+
             if (isSneaking)
             {
                 addEffect(Potion(PotionEffect.LEVITATION, -1, 32767, false, true))
@@ -62,6 +71,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 stopWallrunTimer = null
             }
         }
+
+        //Reset walljumping value
+        walljumping = false
     }
 
     //Runs when you first hit a wall.
@@ -70,17 +82,35 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         //Smack!
         if (!isOnGround)
         {
-            startWallrun(direction)
+            //Don't make the funny noise if you are wallrunning
+            if (startWallrun(direction)) return
         }
+        if (!canWallrun)
+            wallJump(direction, 0.2, 0.0)
+
+        //Smacky noise
+        playSound(Sound.sound(Key.key("block.stone.fall"), Sound.Source.PLAYER, 3f, 1f), Sound.Emitter.self())
+
     }
 
-    private fun startWallrun(direction: Direction)
+    private fun startWallrun(direction: Direction): Boolean
     {
         if (wallrunning || !canWallrun)
-            return
+            return false
 
         val lookingVec = getVecFromYaw(position.yaw).mul(2.0)
-            sendMessage((position.yaw / 45).toString())
+
+        val yaw = position.yaw
+        sendMessage(yaw.toString())
+        if (!when (direction)
+            {
+                Direction.NORTH -> (yaw.absoluteValue in 90f..135f)
+                Direction.SOUTH -> (yaw.absoluteValue in 45f..90f)
+                Direction.WEST -> (position.yaw in 135f..180f || position.yaw in 0f..45f)
+                Direction.EAST -> (position.yaw in -180f..-135f || position.yaw in -45f..0f)
+                else -> false
+            }
+        ) return false
 
         if (stopWallrunTimer == null)
         {
@@ -90,10 +120,17 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 wallrunDirection?.opposite()?.let {
 
                     setVelocity(
-                        Vec(it.normalX().toDouble() * jumpForce * 0.2, 1.0, it.normalZ() * jumpForce * 0.2)
+                        Vec(it.normalX().toDouble() * jumpForce * 0.5, 1.0, it.normalZ() * jumpForce * 0.2)
                         .add(velocity.withY(0.0))
                     )
 
+                }
+
+                //Play the wall kick sound, a little different though
+                if (wallrunning)
+                {
+//                    playSound(Sound.sound(Key.key("block.stone.break"), Sound.Source.PLAYER, 1.5f, 1.5f), Sound.Emitter.self())
+                    playSound(Sound.sound(Key.key("item.crossbow.hit"), Sound.Source.PLAYER, 0.5f, 2f), Sound.Emitter.self())
                 }
 
                 //Stop the wallrun
@@ -105,11 +142,14 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         }
         wallrunning = true
         wallrunDirection = direction
+        soundTick = true
         getVecFromYaw(position.yaw)
             .mul(wallrunSpeedMultiplier)
             .withY(
                 min(velocity.y, 4.0))
             .let { wallrunVelocity = it; setVelocity(it)}
+
+        return true
     }
 
     private fun stopWallrun()
@@ -128,6 +168,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     var wallrunning = false
     var wallrunVelocity: Vec? = null
     var wallrunDirection: Direction? = null
+    var soundTick = true
     private fun wallrunTick()
     {
         //Check if wallrun is over
@@ -141,6 +182,11 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
         //Keep goin' forward.
         wallrunVelocity?.let { setVelocity(it) }
+
+        //Sound
+        if (soundTick)
+            playSound(Sound.sound(Key.key("block.stone.step"), Sound.Source.PLAYER, 2f, 2f), Sound.Emitter.self())
+        soundTick = !soundTick
     }
 
     private fun checkColliding()
@@ -189,9 +235,11 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         if (wall != null)
         {
             wallJump(wall, 1.0)
+            playSound(Sound.sound(Key.key("block.stone.break"), Sound.Source.PLAYER, 2f, 1.2f), Sound.Emitter.self())
         }
     }
 
+    var walljumping = false
     private fun wallJump(wall: Direction, strength: Double, momentumConservation: Double = walljumpMomentumMultiplier)
     {
         setVelocity(getWallJump(wall, strength, momentumConservation))
