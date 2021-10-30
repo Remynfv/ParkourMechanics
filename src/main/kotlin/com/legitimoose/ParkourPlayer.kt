@@ -80,6 +80,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         if (wallrunning || !canWallrun)
             return
 
+        val lookingVec = getVecFromYaw(position.yaw).mul(2.0)
+            sendMessage((position.yaw / 45).toString())
+
         if (stopWallrunTimer == null)
         {
             stopWallrunTimer = schedulerManager.buildTask {
@@ -118,6 +121,11 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     }
 
     var canWallrun = true
+        set(value)
+        {
+            field = value
+            isAllowFlying = value
+        }
     var wallrunning = false
     var wallrunVelocity: Vec? = null
     var wallrunDirection: Direction? = null
@@ -175,12 +183,15 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     {
         isFlying = false
 
+        //Normal jumps stop wallrunning, wallrun jumps do not.
+        if (!wallrunning)
+            canWallrun = false
+
         stopWallrun()
 
         val wall = touchingWalls.firstOrNull()
         if (wall != null)
         {
-
             wallJump(wall, 1.0)
         }
     }
