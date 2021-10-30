@@ -4,6 +4,7 @@ import net.kyori.adventure.key.Key
 import net.kyori.adventure.sound.Sound
 import net.minestom.server.MinecraftServer
 import net.minestom.server.coordinate.Vec
+import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.entity.damage.DamageType
 import net.minestom.server.network.player.PlayerConnection
@@ -43,12 +44,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         //Detect walls and smacks
         checkColliding()
 
-        //Add slowfalling
+        //Add slow fall while wallrunning
         if (touchingWalls.isNotEmpty() && wallrunning)
         {
-//            if (!wallrunning && !walljumping && !isOnGround)
-//                playSound(Sound.sound(Key.key("block.sand.break"), Sound.Source.PLAYER, 1f, 1.7f), Sound.Emitter.self())
-
             if (isSneaking)
             {
                 addEffect(Potion(PotionEffect.LEVITATION, -1, 32767, false, true))
@@ -61,9 +59,11 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         else
             removeEffect(PotionEffect.LEVITATION)
 
+        //Refresh everything when you're on the ground
         if (isOnGround)
         {
             canWallrun = true
+            hasBonked = false
 
             if (stopWallrunTimer != null)
             {
@@ -77,6 +77,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     }
 
     //Runs when you first hit a wall.
+    var hasBonked = false
     private fun smack(direction: Direction)
     {
         //Smack!
@@ -86,7 +87,11 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
             if (startWallrun(direction)) return
         }
         if (!canWallrun)
+        {
+            //BONK
             wallJump(direction, 0.2, 0.0)
+            hasBonked = true
+        }
 
         //Smacky noise
         playSound(Sound.sound(Key.key("block.stone.fall"), Sound.Source.PLAYER, 3f, 1f), Sound.Emitter.self())
@@ -97,8 +102,6 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     {
         if (wallrunning || !canWallrun)
             return false
-
-        val lookingVec = getVecFromYaw(position.yaw).mul(2.0)
 
         val yaw = position.yaw
         sendMessage(yaw.toString())
@@ -163,7 +166,8 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         set(value)
         {
             field = value
-            isAllowFlying = value
+            if (gameMode != GameMode.CREATIVE)
+                isAllowFlying = value
         }
     var wallrunning = false
     var wallrunVelocity: Vec? = null
@@ -223,6 +227,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
     fun onStartFlying()
     {
+        if (gameMode == GameMode.CREATIVE)
+            return
+
         isFlying = false
 
         //Normal jumps stop wallrunning, wallrun jumps do not.
