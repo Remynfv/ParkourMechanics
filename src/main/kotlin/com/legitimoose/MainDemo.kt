@@ -27,6 +27,7 @@ import java.util.*
 val minecraftServer: MinecraftServer = MinecraftServer.init()
 val instanceManager: InstanceManager = MinecraftServer.getInstanceManager()
 val schedulerManager = MinecraftServer.getSchedulerManager()
+val globalEventHandler = MinecraftServer.getGlobalEventHandler()
 
 // Create the instance
 val anvilLoader = AnvilLoader("worlds/worlde")
@@ -52,14 +53,6 @@ object MainDemo
         // Be aware that block objects can be reused, handlers should
         // therefore never assume to be assigned to a single block.
         tnt = tnt.withHandler(DemoHandler())
-
-        // Add an event callback to specify the spawning instance (and the spawn position)
-        val globalEventHandler = MinecraftServer.getGlobalEventHandler()
-        globalEventHandler.addListener(PlayerLoginEvent::class.java) { event: PlayerLoginEvent ->
-            val player = event.player
-            event.setSpawningInstance(instanceContainer)
-            player.respawnPoint = Pos(0.0, 42.0, 0.0)
-        }
 
         //Commands
         MinecraftServer.getCommandManager().register(TestCommand())

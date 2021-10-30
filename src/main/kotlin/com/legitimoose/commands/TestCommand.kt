@@ -1,6 +1,7 @@
 package com.legitimoose.commands
 
 import com.legitimoose.MainDemo
+import com.legitimoose.instanceContainer
 import net.minestom.server.command.CommandSender
 import net.minestom.server.command.builder.Command
 import net.minestom.server.command.builder.CommandContext
@@ -15,7 +16,8 @@ class TestCommand() : Command("test")
         // Executed if no other executor can be used
         defaultExecutor = CommandExecutor { sender: CommandSender, context: CommandContext? ->
             (sender as Player).tick(0)
-            sender.sendMessage("${sender.velocity}")
+            sender.sendMessage("Saving...!")
+            instanceContainer.saveChunksToStorage()
         }
 
         // All default arguments are available in the ArgumentType class
