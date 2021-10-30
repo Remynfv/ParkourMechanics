@@ -105,7 +105,6 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         if (lastBonkDirection != direction)
         {
             //BONK
-            sendMessage("bönk")
             wallJump(direction, 0.2, 0.0)
             lastBonkDirection = direction
             playSound(Sound.sound(Key.key("item.crossbow.hit"), Sound.Source.PLAYER, 0.5f, 2f), Sound.Emitter.self())
@@ -118,7 +117,6 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
             return false
 
         val yaw = position.yaw
-        sendMessage(yaw.toString())
         if (!when (direction)
             {
                 Direction.NORTH -> (yaw.absoluteValue in 90f..135f)
@@ -154,7 +152,6 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 stopWallrun()
                 canWallrun = false
                 stopWallrunTimer = null
-                sendMessage("Your wallrunning days are over!")
             }.delay(Duration.ofSeconds(1)).schedule()
         }
         wallrunning = true
