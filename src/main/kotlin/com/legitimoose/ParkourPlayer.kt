@@ -390,22 +390,17 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     private var stopSlideTimer = schedulerManager.buildTask { stopSlide() }.delay(slideTime, TimeUnit.CLIENT_TICK).build()
     private fun startSlide()
     {
-        if (!isOnGround || sliding)
+        if (!isOnGround || sliding || !standingOnSolidBlock)
             return
-
-        sendMessage("slide start!")
 
         var vel = velocity.withY(0.0)
         val length = vel.length()
 
-        sendMessage("length: $length")
         //If speed is large, make it a liiiitle larger, otherwise, just do it normally (and cap it just to be safe i guess)
         if (length > 5.5)
             vel = vel.normalize().mul(maxSlideSpeed)
         else
             vel = vel.normalize().mul(min(length, maxSlideSpeed))
-
-        sendMessage("speed: ${vel.length()}")
 
         slideVelocity = vel
 
@@ -419,16 +414,34 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         stopSlideTimer.cancel()
         slideVelocity = null
         isFlyingWithElytra = false
-        sendMessage("slide end!")
 
     }
 
     private fun slideTick()
     {
+        if (!isOnGround)
+        {
+            stopSlide()
+            return
+        }
+        if (!standingOnSolidBlock)
+        {
+            slideVelocity?.let { teleport(position.add(it.normalize().mul(0.2))) }
+//            slideVelocity?.let { setVelocity(it.mul(2.0).withY(5.0)); }
+            slideVelocity?.let { setVelocity(it.mul(1.0).withY(0.0)); }
+            stopSlide()
+            return
+        }
         slideVelocity?.let { setVelocity(it) }
         isFlyingWithElytra = true
 
     }
+
+    private val standingOnSolidBlock: Boolean
+        get()
+        {
+            return instance.getBlock(position.withY { y -> y - 1 }).isSolid
+        }
 
     fun onStopSneak()
     {
