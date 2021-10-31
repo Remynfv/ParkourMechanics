@@ -3,10 +3,7 @@ package com.legitimoose
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.Player
 import net.minestom.server.event.entity.EntityAttackEvent
-import net.minestom.server.event.player.PlayerLoginEvent
-import net.minestom.server.event.player.PlayerMoveEvent
-import net.minestom.server.event.player.PlayerStartFlyingEvent
-import net.minestom.server.event.player.PlayerStartSneakingEvent
+import net.minestom.server.event.player.*
 import net.minestom.server.network.PlayerProvider
 import net.minestom.server.network.player.PlayerConnection
 import java.util.*
@@ -41,7 +38,11 @@ class ParkourPlayerProvider: PlayerProvider
         }
 
         globalEventHandler.addListener(PlayerStartSneakingEvent::class.java) { event: PlayerStartSneakingEvent ->
-            (event.player as com.legitimoose.ParkourPlayer).onSneak()
+            (event.player as ParkourPlayer).onSneak()
+        }
+
+        globalEventHandler.addListener(PlayerStopSneakingEvent::class.java) { event: PlayerStopSneakingEvent ->
+            (event.player as ParkourPlayer).onStopSneak()
         }
     }
     override fun createPlayer(uuid: UUID, username: String, connection: PlayerConnection): ParkourPlayer

@@ -25,6 +25,8 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         var walljumpMomentumMultiplier = 0.2
         var maxClimbs = 2
         var wallrunTime = 40L
+        var slideTime = 20L
+        var maxSlideSpeed: Double = 9.0
     }
     var touchingWalls: Set<Direction> = setOf()
     override fun tick(time: Long)
@@ -35,6 +37,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
         if (wallrunning)
             wallrunTick()
+
+        if (sliding)
+            slideTick()
 
         if (wallClimbDirection != null)
             if (!touchingWalls.contains(wallClimbDirection))
@@ -375,5 +380,59 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     fun onSneak()
     {
         //TODO Sliiiiide
+
+        startSlide()
+    }
+
+    var slideVelocity: Vec? = null
+    private val sliding: Boolean
+        get() = slideVelocity != null
+    private var stopSlideTimer = schedulerManager.buildTask { stopSlide() }.delay(slideTime, TimeUnit.CLIENT_TICK).build()
+    private fun startSlide()
+    {
+        if (!isOnGround || sliding)
+            return
+
+        sendMessage("slide start!")
+
+        var vel = velocity.withY(0.0)
+        val length = vel.length()
+
+        sendMessage("length: $length")
+        //If speed is large, make it a liiiitle larger, otherwise, just do it normally (and cap it just to be safe i guess)
+        if (length > 5.5)
+            vel = vel.normalize().mul(maxSlideSpeed)
+        else
+            vel = vel.normalize().mul(min(length, maxSlideSpeed))
+
+        sendMessage("speed: ${vel.length()}")
+
+        slideVelocity = vel
+
+        isFlyingWithElytra = true
+
+        stopSlideTimer.schedule()
+    }
+
+    private fun stopSlide()
+    {
+        stopSlideTimer.cancel()
+        slideVelocity = null
+        isFlyingWithElytra = false
+        sendMessage("slide end!")
+
+    }
+
+    private fun slideTick()
+    {
+        slideVelocity?.let { setVelocity(it) }
+        isFlyingWithElytra = true
+
+    }
+
+    fun onStopSneak()
+    {
+        if (sliding)
+            stopSlide()
     }
 }
