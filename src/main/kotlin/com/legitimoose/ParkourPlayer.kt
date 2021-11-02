@@ -29,6 +29,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         var maxSlideSpeed: Double = 9.0
     }
     var touchingWalls: Set<Direction> = setOf()
+    var wasOnGroundLastTick = false
+    var lastPos = position
+
     override fun tick(time: Long)
     {
         super.tick(time)
@@ -48,6 +51,21 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 wallClimbDirection = null
             }
 
+        if (wasOnGroundLastTick && !isOnGround)
+        {
+            onLeaveGround()
+        }
+
+        wasOnGroundLastTick = isOnGround
+        lastPos = position
+    }
+
+    //Jank, not quite onJump function because I don't think we can detect jumps.
+    private fun onLeaveGround()
+    {
+        val insideBlock = instance.getBlock(lastPos).name()
+        if (insideBlock.contains("stairs") || insideBlock.contains("slab") )
+            springboard()
     }
 
     //Ticks when you move, or if something important is happening
@@ -300,6 +318,14 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
             val blockPos = position.add(dir.vec()).asVec().apply(Vec.Operator.FLOOR)
 
             val block = instance.getBlock(blockPos)
+
+            //Skip stairs n slabs, they aint walls >:(
+            //This will definitely not cause any issues \s
+            //This was added to fix bonking on the INSIDE of slabs when springboarding.
+            val blockname = block.name()
+            if (blockname.contains("stairs") || blockname.contains("slab"))
+                continue
+
             if (block.isSolid)
             {
                 if (bb.intersectWithBlock(blockPos))
@@ -414,14 +440,14 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         stopSlideTimer.cancel()
         slideVelocity = null
         isFlyingWithElytra = false
-
     }
 
     private fun slideTick()
     {
         if (!isOnGround)
         {
-            stopSlide()
+//            stopSlide()
+            isFlyingWithElytra = false
             return
         }
         if (!standingOnSolidBlock)
@@ -432,9 +458,28 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
             stopSlide()
             return
         }
-        slideVelocity?.let { setVelocity(it) }
-        isFlyingWithElytra = true
 
+        //Springboard!!!
+        val insideBlock = instance.getBlock(position).name()
+        if (insideBlock.contains("stairs") || insideBlock.contains("slab") )
+        {
+            springboard()
+            return
+        }
+
+        slideVelocity?.let { setVelocity(it) }
+
+        isFlyingWithElytra = true
+    }
+
+    private fun springboard()
+    {
+        val vel = velocity.mul(1.5).withY(jumpUpForce)
+
+        if (sliding)
+            stopSlide()
+
+        setVelocity(vel)
     }
 
     private val standingOnSolidBlock: Boolean
