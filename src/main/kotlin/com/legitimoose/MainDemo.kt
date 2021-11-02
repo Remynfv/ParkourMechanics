@@ -20,6 +20,7 @@ import net.minestom.server.instance.block.Block
 import net.minestom.server.ping.ServerListPingType
 import net.minestom.server.world.biomes.Biome
 import java.util.*
+import java.util.function.Consumer
 
 
 // Initialization
@@ -63,48 +64,56 @@ object MainDemo
         MinecraftServer.getCommandManager().register(FillCommand())
         MinecraftServer.getCommandManager().register(ParkourCommand())
 
-        globalEventHandler.addListener(ServerListPingEvent::class.java) { event: ServerListPingEvent ->
+        globalEventHandler.addListener(ServerListPingEvent::class.java, this::onServerListPing)
 
-            val responseData = event.responseData
-
-            println(event.connection?.identifier)
-
-            when (event.pingType)
-            {
-                (ServerListPingType.MODERN_FULL_RGB) -> {
-                    responseData.protocol = -1
-                    responseData.version = "§d*:･ﾟ✧ silly name ->                                                       §aONLINE"
-                    responseData.description = MiniMessage.get().parse("<rainbow>This is a test!</rainbow>")
-                    responseData.favicon = "data:image/png;base64," + MEDIUM_REEF_ICON
-                }
-                else -> { }
-            }
-        }
-
-        globalEventHandler.addListener(PlayerEntityInteractEvent::class.java) { event: PlayerEntityInteractEvent ->
-            if (event.hand == Player.Hand.OFF)
-                CombatUtils.hit(event.target, event.entity, true)
-        }
+        registerCombatListeners()
 
         globalEventHandler.addListener(PlayerBlockPlaceEvent::class.java) { event: PlayerBlockPlaceEvent ->
             if (event.block == Block.TNT)
                 event.block = tnt
         }
 
-        globalEventHandler.addListener(EntityAttackEvent::class.java) { event: EntityAttackEvent ->
-            CombatUtils.hit(event.target, event.entity)
-        }
-
-
         MinecraftServer.getConnectionManager().setPlayerProvider(ParkourPlayerProvider())
 
         ZombieCreature().setInstance(instanceContainer, Pos(0.0, 42.0, 0.0))
         EntityCreature(EntityType.BOAT).setInstance(instanceContainer, Pos(5.0, 42.0, 0.0))
 
-
-
         // Start the server on port 25565
         minecraftServer.start("0.0.0.0", 25565)
+    }
+
+    //Registers left and right click attack events.
+    private fun registerCombatListeners()
+    {
+        globalEventHandler.addListener(PlayerEntityInteractEvent::class.java) { event: PlayerEntityInteractEvent ->
+            if (event.hand == Player.Hand.OFF)
+                CombatUtils.hit(event.target, event.entity, true)
+        }
+
+        globalEventHandler.addListener(EntityAttackEvent::class.java) { event: EntityAttackEvent ->
+            CombatUtils.hit(event.target, event.entity)
+        }
+    }
+
+    private fun onServerListPing(event: ServerListPingEvent)
+    {
+        val responseData = event.responseData
+
+        println(event.connection?.identifier)
+
+        when (event.pingType)
+        {
+            (ServerListPingType.MODERN_FULL_RGB) ->
+            {
+                responseData.protocol = -1
+                responseData.version = "§d*:･ﾟ✧ silly name ->                                                       §aONLINE"
+                responseData.description = MiniMessage.get().parse("<rainbow>This is a test!</rainbow>")
+                responseData.favicon = "data:image/png;base64," + MEDIUM_REEF_ICON
+            }
+            else ->
+            {
+            }
+        }
     }
 
 
