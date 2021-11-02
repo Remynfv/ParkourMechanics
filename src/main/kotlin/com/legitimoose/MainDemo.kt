@@ -61,6 +61,7 @@ object MainDemo
         MinecraftServer.getCommandManager().register(SummonCommand())
         MinecraftServer.getCommandManager().register(PvpCommand())
         MinecraftServer.getCommandManager().register(FillCommand())
+        MinecraftServer.getCommandManager().register(ParkourCommand())
 
         globalEventHandler.addListener(ServerListPingEvent::class.java) { event: ServerListPingEvent ->
 

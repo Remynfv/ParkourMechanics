@@ -26,10 +26,12 @@ class FillCommand : Command("fill")
 
             val pos1 = context.get<RelativeVec>("pos1").fromSender(sender)
             val pos2 = context.get<RelativeVec>("pos2").fromSender(sender)
+
             val block = context.get<Block>("block")
 
             val instance = sender.instance
 
+            //TODO make it work if starting at high number going to low.
             for (x in pos1.blockX() .. pos2.blockX())
                 for (y in pos1.blockY() .. pos2.blockY())
                     for (z in pos1.blockZ() .. pos2.blockZ())

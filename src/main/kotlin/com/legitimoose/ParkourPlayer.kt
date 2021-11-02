@@ -35,6 +35,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     override fun tick(time: Long)
     {
         super.tick(time)
+
         if (touchingWalls.isNotEmpty())
             parkourTick()
 

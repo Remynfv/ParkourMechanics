@@ -11,7 +11,16 @@ class GamemodeCommand : Command("gamemode")
     init
     {
         addSyntax({ sender: CommandSender, context: CommandContext ->
-            sender.asPlayer().gameMode = context.get("gamemode")
+            val player = sender.asPlayer()
+            val gamemode = context.get<GameMode>("gamemode")
+
+            if (player.gameMode == GameMode.CREATIVE && gamemode == GameMode.CREATIVE)
+            {
+                player.isFlying = true
+                player.velocity = player.velocity.withY(1.0)
+            }
+            player.gameMode = gamemode
+
         }, ArgumentType.Enum("gamemode", GameMode::class.java))
     }
 }
