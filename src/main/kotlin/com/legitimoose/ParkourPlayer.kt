@@ -80,11 +80,11 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         {
             if (isSneaking)
             {
-                addEffect(Potion(PotionEffect.LEVITATION, -1, 32767, false, true))
+                addEffect(Potion(PotionEffect.LEVITATION, -1, 32767, false, false))
             }
             else
             {
-                addEffect(Potion(PotionEffect.LEVITATION, -5, 32767, false, true))
+                addEffect(Potion(PotionEffect.LEVITATION, -5, 32767, false, false))
             }
         }
         else
@@ -173,12 +173,12 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         if (runForce < 4)
         {
             setVelocity(Vec(0.0, 7.0, 0.0))
-            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 20, false, true))
+            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 20, false, false))
         }
         else
         {
             setVelocity(Vec(0.0, 12.0, 0.0))
-            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 30, false, true))
+            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 30, false, false))
         }
 
         climbs++
