@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 
 plugins {
-    kotlin("jvm") version "1.5.31"
+    kotlin("jvm") version "1.6.10"
     id("com.github.johnrengelman.shadow") version "6.1.0"
 }
 
@@ -23,8 +23,9 @@ repositories {
 
 dependencies {
     implementation("com.github.Minestom:Minestom:-SNAPSHOT")
-    testImplementation("org.jetbrains.kotlin:kotlin-test:1.5.31")
-    implementation("net.kyori:adventure-text-minimessage:4.1.0-SNAPSHOT")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.6.10")
+    implementation("net.kyori:adventure-text-minimessage:4.10.1")
+    implementation("com.google.code.gson:gson:2.9.0")
 }
 
 tasks.test {
@@ -32,7 +33,7 @@ tasks.test {
 }
 
 tasks.withType<KotlinCompile>() {
-    kotlinOptions.jvmTarget = "16"
+    kotlinOptions.jvmTarget = "17"
 }
 
 tasks.jar {

@@ -1,6 +1,5 @@
 package com.legitimoose.commands
 
-import com.legitimoose.MainDemo
 import com.legitimoose.instanceContainer
 import net.minestom.server.command.CommandSender
 import net.minestom.server.command.builder.Command
@@ -14,7 +13,7 @@ class TestCommand() : Command("test")
     init
     {
         // Executed if no other executor can be used
-        defaultExecutor = CommandExecutor { sender: CommandSender, context: CommandContext? ->
+        defaultExecutor = CommandExecutor { sender: CommandSender, _: CommandContext? ->
             (sender as Player).tick(0)
             sender.sendMessage("Saving...!")
             instanceContainer.saveChunksToStorage()

@@ -1,19 +1,13 @@
 package com.legitimoose.commands
 
-import com.legitimoose.instanceContainer
 import net.minestom.server.command.CommandSender
 import net.minestom.server.command.builder.Command
 import net.minestom.server.command.builder.CommandContext
 import net.minestom.server.command.builder.arguments.ArgumentType
-import net.minestom.server.command.builder.arguments.minecraft.ArgumentBlockState
-import net.minestom.server.command.builder.arguments.relative.ArgumentRelativeBlockPosition
-import net.minestom.server.coordinate.Point
 import net.minestom.server.coordinate.Vec
-import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.instance.block.Block
 import net.minestom.server.utils.location.RelativeVec
-import javax.swing.text.Position
 
 class FillCommand : Command("fill")
 {

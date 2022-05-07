@@ -1,8 +1,6 @@
 package com.legitimoose
 
 import net.minestom.server.coordinate.Pos
-import net.minestom.server.entity.Player
-import net.minestom.server.event.entity.EntityAttackEvent
 import net.minestom.server.event.player.*
 import net.minestom.server.network.PlayerProvider
 import net.minestom.server.network.player.PlayerConnection

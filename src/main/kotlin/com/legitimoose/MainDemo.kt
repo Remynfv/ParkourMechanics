@@ -2,8 +2,7 @@ package com.legitimoose
 
 import com.legitimoose.blocks.DemoHandler
 import com.legitimoose.commands.*
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
+import com.legitimoose.entity.ZombieCreature
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.minestom.server.MinecraftServer
 import net.minestom.server.coordinate.Pos
@@ -14,13 +13,11 @@ import net.minestom.server.event.entity.EntityAttackEvent
 import net.minestom.server.event.player.PlayerBlockPlaceEvent
 import net.minestom.server.event.player.PlayerEntityInteractEvent
 import net.minestom.server.event.server.ServerListPingEvent
-import net.minestom.server.instance.*
-import net.minestom.server.instance.batch.ChunkBatch
+import net.minestom.server.instance.AnvilLoader
+import net.minestom.server.instance.InstanceManager
 import net.minestom.server.instance.block.Block
 import net.minestom.server.ping.ServerListPingType
-import net.minestom.server.world.biomes.Biome
 import java.util.*
-import java.util.function.Consumer
 
 
 // Initialization
@@ -46,7 +43,7 @@ object MainDemo
         instanceContainer.enableAutoChunkLoad(true)
 
         // Set the ChunkGenerator
-        instanceContainer.chunkGenerator = GeneratorDemo()
+        instanceContainer.setGenerator() { it.modifier().fillHeight(0, 39, Block.STONE)}
 
         var tnt = Block.TNT
         // Create a new block with the specified handler.
@@ -109,7 +106,7 @@ object MainDemo
             {
                 responseData.protocol = -1
                 responseData.version = "§d*:･ﾟ✧ silly name ->                                                       §aONLINE"
-                responseData.description = MiniMessage.get().parse("<rainbow>This is a test!</rainbow>")
+                responseData.description = MiniMessage.miniMessage().deserialize("<rainbow>This is a test!</rainbow>")
                 responseData.favicon = "data:image/png;base64," + MEDIUM_REEF_ICON
             }
             else ->
@@ -120,32 +117,4 @@ object MainDemo
 
 
     var playersMovedLastTick = mutableListOf<UUID>()
-
-    private class GeneratorDemo : ChunkGenerator
-    {
-        override fun generateChunkData(batch: ChunkBatch, chunkX: Int, chunkZ: Int)
-        {
-            // Set chunk blocks
-            for (x in 0 until Chunk.CHUNK_SIZE_X)
-            {
-                for (z in 0 until Chunk.CHUNK_SIZE_Z)
-                {
-                    for (y in 0..39)
-                    {
-                        batch.setBlock(x, y, z, Block.STONE)
-                    }
-                }
-            }
-        }
-
-        override fun fillBiomes(biomes: Array<Biome>, chunkX: Int, chunkZ: Int)
-        {
-            Arrays.fill(biomes, Biome.PLAINS)
-        }
-
-        override fun getPopulators(): List<ChunkPopulator>?
-        {
-            return null
-        }
-    }
 }

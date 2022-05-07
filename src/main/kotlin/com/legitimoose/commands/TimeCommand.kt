@@ -1,7 +1,5 @@
 package com.legitimoose.commands
 
-import com.legitimoose.MainDemo
-import com.legitimoose.instanceContainer
 import net.minestom.server.command.CommandSender
 import net.minestom.server.command.builder.Command
 import net.minestom.server.command.builder.CommandContext
@@ -14,7 +12,7 @@ class TimeCommand() : Command("time")
     init
     {
         // Executed if no other executor can be used
-        defaultExecutor = CommandExecutor { sender: CommandSender, context: CommandContext? ->
+        defaultExecutor = CommandExecutor { sender: CommandSender, _: CommandContext? ->
             sender.sendMessage("Usage: /time <time>")
         }
 
@@ -27,8 +25,10 @@ class TimeCommand() : Command("time")
             val number = context.get(numberArgument)
             sender.sendMessage("Time set to $number")
 
-            sender.asPlayer().instance?.timeRate = 0
-            sender.asPlayer().instance?.time = number
+            if (sender is Player) {
+                sender.instance?.timeRate = 0
+                sender.instance?.time = number
+            }
         }, numberArgument)
 
 

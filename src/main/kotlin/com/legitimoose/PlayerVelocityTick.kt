@@ -4,7 +4,6 @@ import net.minestom.server.coordinate.Pos
 import net.minestom.server.coordinate.Vec
 import net.minestom.server.entity.Player
 import net.minestom.server.utils.player.PlayerUtils
-import net.minestom.server.utils.time.TimeUnit
 import java.util.*
 
 val previousPositions: MutableMap<UUID, Pos> = mutableMapOf()

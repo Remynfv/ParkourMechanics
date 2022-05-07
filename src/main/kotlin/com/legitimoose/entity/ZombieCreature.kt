@@ -1,19 +1,11 @@
-package com.legitimoose.commands
+package com.legitimoose.entity
 
-import com.legitimoose.MainDemo
 import com.legitimoose.instanceContainer
-import com.sun.tools.javac.Main
 import net.minestom.server.entity.Entity
 import net.minestom.server.entity.EntityCreature
 import net.minestom.server.entity.EntityType
-import net.minestom.server.entity.Player
 import net.minestom.server.entity.ai.EntityAIGroupBuilder
 import net.minestom.server.entity.ai.TargetSelector
-import net.minestom.server.entity.ai.goal.FollowTargetGoal
-import net.minestom.server.entity.ai.goal.MeleeAttackGoal
-import net.minestom.server.entity.ai.goal.RandomLookAroundGoal
-import net.minestom.server.entity.ai.goal.RandomStrollGoal
-import java.time.Duration
 
 class ZombieCreature : EntityCreature(EntityType.ZOMBIE)
 {

@@ -2,6 +2,7 @@ package com.legitimoose
 
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.sound.Sound
+import net.minestom.server.MinecraftServer
 import net.minestom.server.coordinate.Vec
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
@@ -32,9 +33,17 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     var wasOnGroundLastTick = false
     var lastPos = position
 
+    var velocityTick = Vec.ZERO
+
     override fun tick(time: Long)
     {
         super.tick(time)
+
+        /*
+        Old velocity calculation, because the new minestom update broke it.
+         */
+        getVelocity()
+        velocityTick = position.asVec().sub(lastPos).mul(MinecraftServer.TICK_PER_SECOND.toDouble())
 
         if (touchingWalls.isNotEmpty())
             parkourTick()
@@ -80,11 +89,11 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         {
             if (isSneaking)
             {
-                addEffect(Potion(PotionEffect.LEVITATION, -1, 32767, false, false))
+                addEffect(Potion(PotionEffect.LEVITATION, -1, 32767))
             }
             else
             {
-                addEffect(Potion(PotionEffect.LEVITATION, -5, 32767, false, false))
+                addEffect(Potion(PotionEffect.LEVITATION, -5, 32767))
             }
         }
         else
@@ -123,7 +132,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 return
             else if (climbs >= maxClimbs)
                 bonk(direction)
-            else if (velocity.y > 0 && climbs < maxClimbs)
+            else if (velocityTick.y > 0 && climbs < maxClimbs)
             {
                 startWallClimb(direction)
             }
@@ -149,6 +158,8 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
     private fun startWallClimb(direction: Direction): Int
     {
+        sendMessage("Wall climb!")
+
         val yaw = position.yaw
         if (!when (direction)
             {
@@ -165,7 +176,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
 
         //Wall climb
-        val runForce = velocity.withY(0.0).lengthSquared()
+        val runForce = velocityTick.withY(0.0).lengthSquared()
 
         wallClimbDirection = direction
 
@@ -173,12 +184,12 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         if (runForce < 4)
         {
             setVelocity(Vec(0.0, 7.0, 0.0))
-            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 20, false, false))
+            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 20))
         }
         else
         {
             setVelocity(Vec(0.0, 12.0, 0.0))
-            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 30, false, false))
+            addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 30))
         }
 
         climbs++
@@ -235,7 +246,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
                     setVelocity(
                         Vec(it.normalX().toDouble() * jumpForce * 0.5, 1.0, it.normalZ() * jumpForce * 0.2)
-                        .add(velocity.withY(0.0))
+                        .add(velocityTick.withY(0.0))
                     )
 
                 }
@@ -260,7 +271,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         getVecFromYaw(position.yaw)
             .mul(wallrunSpeedMultiplier)
             .withY(
-                min(velocity.y, 4.0))
+                min(velocityTick.y, 4.0))
             .let { wallrunVelocity = it; setVelocity(it)}
 
         return 0
@@ -329,7 +340,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
             if (block.isSolid)
             {
-                if (bb.intersectWithBlock(blockPos))
+                val relativePosition = position.asVec().sub(blockPos)
+                val collisionCheck = block.registry().collisionShape().intersectBox(relativePosition, bb)
+                if (collisionCheck)
                 {
                     if (!touchingWalls.contains(dir))
                         smack(dir)
@@ -366,7 +379,8 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         {
             setVelocity(
                 getWallJump(wall, 1.0)
-                    .add(getVecFromYaw(position.yaw)
+                    .add(
+                        getVecFromYaw(position.yaw)
                         .mul(20.0)
                     )
             )
@@ -398,7 +412,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         return Vec(opposite.normalX().toDouble() * jumpForce, jumpUpForce, opposite.normalZ() * jumpForce)
             .mul(strength)
             .add(
-                velocity
+                velocityTick
                     .withY(0.0)
                     .mul(momentumConservation)
             )
@@ -414,13 +428,13 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     var slideVelocity: Vec? = null
     private val sliding: Boolean
         get() = slideVelocity != null
-    private var stopSlideTimer = schedulerManager.buildTask { stopSlide() }.delay(slideTime, TimeUnit.CLIENT_TICK).build()
+    private var stopSlideTimer: Task? = null
     private fun startSlide()
     {
         if (!isOnGround || sliding || !standingOnSolidBlock)
             return
 
-        var vel = velocity.withY(0.0)
+        var vel = velocityTick.withY(0.0)
         val length = vel.length()
 
         //If speed is large, make it a liiiitle larger, otherwise, just do it normally (and cap it just to be safe i guess)
@@ -433,12 +447,12 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
         isFlyingWithElytra = true
 
-        stopSlideTimer.schedule()
+        stopSlideTimer = schedulerManager.buildTask { stopSlide() }.delay(slideTime, TimeUnit.CLIENT_TICK).schedule()
     }
 
     private fun stopSlide()
     {
-        stopSlideTimer.cancel()
+        stopSlideTimer?.cancel()
         slideVelocity = null
         isFlyingWithElytra = false
     }
@@ -475,7 +489,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
     private fun springboard()
     {
-        val vel = velocity.mul(1.5).withY(jumpUpForce)
+        val vel = velocityTick.mul(1.5).withY(jumpUpForce)
 
         if (sliding)
             stopSlide()

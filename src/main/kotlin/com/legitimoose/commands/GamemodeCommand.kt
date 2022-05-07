@@ -5,13 +5,14 @@ import net.minestom.server.command.builder.Command
 import net.minestom.server.command.builder.CommandContext
 import net.minestom.server.command.builder.arguments.ArgumentType
 import net.minestom.server.entity.GameMode
+import net.minestom.server.entity.Player
 
 class GamemodeCommand : Command("gamemode")
 {
     init
     {
         addSyntax({ sender: CommandSender, context: CommandContext ->
-            val player = sender.asPlayer()
+            val player = sender as Player
             val gamemode = context.get<GameMode>("gamemode")
 
             if (player.gameMode == GameMode.CREATIVE && gamemode == GameMode.CREATIVE)

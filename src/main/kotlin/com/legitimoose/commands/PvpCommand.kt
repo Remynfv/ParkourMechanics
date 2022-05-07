@@ -2,7 +2,6 @@ package com.legitimoose.commands
 
 import com.legitimoose.CombatUtils
 import com.legitimoose.ParkourPlayer
-import com.legitimoose.ParkourPlayerProvider
 import net.minestom.server.command.CommandSender
 import net.minestom.server.command.builder.Command
 import net.minestom.server.command.builder.CommandContext
