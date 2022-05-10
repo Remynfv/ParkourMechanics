@@ -6,6 +6,7 @@ import net.minestom.server.command.builder.CommandContext
 import net.minestom.server.command.builder.CommandExecutor
 import net.minestom.server.command.builder.arguments.ArgumentType
 import net.minestom.server.entity.Player
+import net.minestom.server.network.packet.server.play.TimeUpdatePacket
 
 class TimeCommand() : Command("time")
 {
@@ -28,6 +29,11 @@ class TimeCommand() : Command("time")
             if (sender is Player) {
                 sender.instance?.timeRate = 0
                 sender.instance?.time = number
+
+                sender.sendMessage("Set world time to $number seconds")
+
+                @Suppress("UnstableApiUsage")
+                sender.sendPacket(TimeUpdatePacket(number*20, 6000))
             }
         }, numberArgument)
 

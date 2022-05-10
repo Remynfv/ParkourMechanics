@@ -3,15 +3,21 @@ package com.legitimoose
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.sound.Sound
 import net.minestom.server.MinecraftServer
+import net.minestom.server.attribute.Attribute
 import net.minestom.server.coordinate.Vec
 import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
+import net.minestom.server.entity.damage.DamageType
+import net.minestom.server.network.packet.server.play.TimeUpdatePacket
 import net.minestom.server.network.player.PlayerConnection
 import net.minestom.server.potion.Potion
 import net.minestom.server.potion.PotionEffect
 import net.minestom.server.timer.Task
+import net.minestom.server.timer.TaskSchedule
 import net.minestom.server.utils.Direction
 import net.minestom.server.utils.time.TimeUnit
+import java.time.Duration
+import java.time.Instant
 import java.util.*
 import kotlin.math.absoluteValue
 import kotlin.math.min
@@ -27,13 +33,32 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         var maxClimbs = 2
         var wallrunTime = 40L
         var slideTime = 20L
-        var maxSlideSpeed: Double = 9.0
+        var maxSlideSpeed: Double = 5.0
     }
+
+
+    private val fallDamageSlowTime: Int = 40
+
+    /**
+     * Maximum time between pressing sneak and landing to execute a roll, in milliseconds.
+     */
+    private val rollTime: Int = 250
+
+    /**
+     * If null: roll has not been pressed since falling
+     * Otherwise: Instant when sneak was pressed, to count
+     */
+    private var lastTriedToRoll: Instant? = null
     var touchingWalls: Set<Direction> = setOf()
     var wasOnGroundLastTick = false
-    var lastPos = position
+    private var lastPos = position
 
     var velocityTick = Vec.ZERO
+
+    /**
+     * Y position when player last left the ground
+     */
+    private var fallStartHeight: Double = 0.0
 
     override fun tick(time: Long)
     {
@@ -61,18 +86,72 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                 wallClimbDirection = null
             }
 
+        if (!isOnGround && position.y > fallStartHeight)
+        {
+            fallStartHeight = position.y
+        }
         if (wasOnGroundLastTick && !isOnGround)
         {
             onLeaveGround()
         }
+        else if (!wasOnGroundLastTick && isOnGround)
+        {
+            onLand()
+        }
+
+        //If you have slow falling (aka, are wall sliding) reset fall height
+        if (activeEffects.any { it.potion.effect == PotionEffect.SLOW_FALLING })
+            fallStartHeight = position.y //Update fall height
 
         wasOnGroundLastTick = isOnGround
-        lastPos = position
+        lastPos = position //There exists "lastPosition" but I don't know what it does (it behaves unusually). So I have this for myself.
+    }
+
+    private fun onLand()
+    {
+        val distanceFallen = fallStartHeight - position.y
+
+//        sendMessage("Fell $distanceFallen blocks")
+        if (distanceFallen >= 5)
+        {
+            if (lastTriedToRoll != null)
+            {
+                val timeSincePress = Duration.between(lastTriedToRoll, Instant.now())
+                if (timeSincePress.toMillis() <= rollTime)
+                {
+                    lastTriedToRoll = null
+                    return roll()
+                }
+            }
+            //"Fall damage"
+            fallDamage()
+        }
+        else if (isSneaking)
+                startSlide()
+        lastTriedToRoll = null
+    }
+
+    /**
+     * Slow the player and prevent jumping for a short time. AKA, take fall damage.
+     */
+    private fun fallDamage()
+    {
+        addEffect(Potion(PotionEffect.SLOWNESS, 5, fallDamageSlowTime))
+        getAttribute(Attribute.MOVEMENT_SPEED).baseValue = 0.01f
+        addEffect(Potion(PotionEffect.JUMP_BOOST, -127, fallDamageSlowTime))
+        scheduler.scheduleTask(
+            {getAttribute(Attribute.MOVEMENT_SPEED).baseValue = 0.1f},
+            TaskSchedule.tick(fallDamageSlowTime),
+            TaskSchedule.stop()
+        )
+        damage(DamageType.GRAVITY, 0f)
     }
 
     //Jank, not quite onJump function because I don't think we can detect jumps.
     private fun onLeaveGround()
     {
+        fallStartHeight = lastPos.y //Reset fall height when we first leave the ground.
+
         val insideBlock = instance.getBlock(lastPos).name()
         if (insideBlock.contains("stairs") || insideBlock.contains("slab") )
             springboard()
@@ -181,15 +260,11 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         //Only do the small jump if youre moving REAL slow. This is buggy af.
         if (runForce < 4)
         {
-            sendMessage("Wall climb! (small)")
-
             setVelocity(Vec(0.0, 7.0, 0.0))
             addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 20))
         }
         else
         {
-            sendMessage("Wall climb! (big)")
-
             setVelocity(Vec(0.0, 12.0, 0.0))
             addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 30))
         }
@@ -432,9 +507,13 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
     fun onSneak()
     {
-        //TODO Sliiiiide
-
+        //Sliiiiide
         startSlide()
+
+        if (!isOnGround && lastTriedToRoll == null)
+        {
+            lastTriedToRoll = Instant.now()
+        }
     }
 
     var slideVelocity: Vec? = null
@@ -446,10 +525,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         //For reasons unknown to me, if the velocity equals zero when we start,
         // it causes array overflow exceptions in the Player collision code.
         var vel = velocityTick.withY(0.0)
-        if (!isOnGround || sliding || !standingOnSolidBlock || vel == Vec.ZERO)
+        if (!isOnGround || sliding || !standingOnSolidBlock || vel == Vec.ZERO || activeEffects.any {it.potion.effect == PotionEffect.JUMP_BOOST})
             return
 
-        sendMessage(velocityTick.toString())
         val length = vel.length()
 
         //If speed is large, make it a liiiitle larger, otherwise, just do it normally (and cap it just to be safe i guess)
@@ -470,6 +548,14 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         stopSlideTimer?.cancel()
         slideVelocity = null
         isFlyingWithElytra = false
+    }
+
+    /**
+        Sets GameTime to 0 to play a roll animation
+     */
+    private fun roll() {
+        @Suppress("UnstableApiUsage")
+        sendPacket(TimeUpdatePacket(0, 6000))
     }
 
     private fun slideTick()
