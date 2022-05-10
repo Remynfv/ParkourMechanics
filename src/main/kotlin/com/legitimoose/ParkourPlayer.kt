@@ -158,8 +158,6 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
     private fun startWallClimb(direction: Direction): Int
     {
-        sendMessage("Wall climb!")
-
         val yaw = position.yaw
         if (!when (direction)
             {
@@ -183,11 +181,15 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
         //Only do the small jump if youre moving REAL slow. This is buggy af.
         if (runForce < 4)
         {
+            sendMessage("Wall climb! (small)")
+
             setVelocity(Vec(0.0, 7.0, 0.0))
             addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 20))
         }
         else
         {
+            sendMessage("Wall climb! (big)")
+
             setVelocity(Vec(0.0, 12.0, 0.0))
             addEffect(Potion(PotionEffect.SLOW_FALLING, 0, 30))
         }
@@ -338,10 +340,20 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
             if (blockname.contains("stairs") || blockname.contains("slab"))
                 continue
 
-            if (block.isSolid)
+            if (block.isSolid) //Excludes stairs n stuff for some reason
             {
                 val relativePosition = position.asVec().sub(blockPos)
-                val collisionCheck = block.registry().collisionShape().intersectBox(relativePosition, bb)
+//                val relativeStart = boundingBox.relativeStart()
+//                val relativeEnd = boundingBox.relativeEnd()
+                @Suppress("UnstableApiUsage") val collisionCheck = block.registry().collisionShape().intersectBox(relativePosition, bb) //Doesn't work with non-cubic blocks!
+//                sendMessage(block.registry().collisionShape().relativeStart().toString())
+//                val relativeStart = block.registry().collisionShape().relativeStart().add(blockPos)
+//                val relativeEnd = block.registry().collisionShape().relativeEnd().add(blockPos)
+//                ParticleCreator.createParticlePacket(
+//                    Particle.FLAME, relativeStart.x(), relativeStart.y(), relativeStart.z(),
+//                0f, 0f, 0f, 1).let { sendPacket(it) }
+//                ParticleCreator.createParticlePacket(Particle.SOUL_FIRE_FLAME, relativeEnd.x(), relativeEnd.y(), relativeEnd.z(),
+//                    0f, 0f, 0f, 1).let { sendPacket(it) }
                 if (collisionCheck)
                 {
                     if (!touchingWalls.contains(dir))
@@ -431,10 +443,13 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     private var stopSlideTimer: Task? = null
     private fun startSlide()
     {
-        if (!isOnGround || sliding || !standingOnSolidBlock)
+        //For reasons unknown to me, if the velocity equals zero when we start,
+        // it causes array overflow exceptions in the Player collision code.
+        var vel = velocityTick.withY(0.0)
+        if (!isOnGround || sliding || !standingOnSolidBlock || vel == Vec.ZERO)
             return
 
-        var vel = velocityTick.withY(0.0)
+        sendMessage(velocityTick.toString())
         val length = vel.length()
 
         //If speed is large, make it a liiiitle larger, otherwise, just do it normally (and cap it just to be safe i guess)
