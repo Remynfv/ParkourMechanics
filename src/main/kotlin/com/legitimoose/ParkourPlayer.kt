@@ -111,8 +111,8 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
     {
         val distanceFallen = fallStartHeight - position.y
 
-//        sendMessage("Fell $distanceFallen blocks")
-        if (distanceFallen >= 5)
+        //At this height, you are able to roll.
+        if (distanceFallen >= 4)
         {
             if (lastTriedToRoll != null)
             {
@@ -123,8 +123,9 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
                     return roll()
                 }
             }
-            //"Fall damage"
-            fallDamage()
+            //"Fall damage" is dealt when falling from this height without a roll.
+            if (distanceFallen >= 6)
+                fallDamage()
         }
         else if (isSneaking)
                 startSlide()
@@ -590,6 +591,7 @@ class ParkourPlayer(uuid: UUID, username: String, playerConnection: PlayerConnec
 
     private fun springboard()
     {
+        return
         val vel = velocityTick.mul(1.5).withY(jumpUpForce)
 
         if (sliding)

@@ -17,6 +17,7 @@ java {
 
 repositories {
     mavenCentral()
+    mavenLocal()
     maven(url = "https://repo.spongepowered.org/maven")
     maven(url = "https://jitpack.io")
 }
@@ -26,6 +27,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test:1.6.10")
     implementation("net.kyori:adventure-text-minimessage:4.10.1")
     implementation("com.google.code.gson:gson:2.9.0")
+    implementation("org.mineskin:java-client:1.2.0-SNAPSHOT") //Must be installed locally
 }
 
 tasks.test {
